@@ -1,0 +1,13 @@
+{
+  "name": "pocket-html-viewer",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/server.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check js/app.js && node --check js/db.js && node --check js/viewer-engine.js && node --check js/zip.js"
+  },
+  "engines": { "node": ">=20" }
+}

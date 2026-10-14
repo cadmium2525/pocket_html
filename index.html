@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#101418">
+  <meta name="description" content="iPhoneのファイルからHTMLやZIPを開いて、ページやブラウザゲームを動かせるViewer。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Pocket HTML — ファイルから、すぐに。</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./js/app.js"></script>
+</head>
+<body>
+  <svg class="svg-defs" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m8 7-5 5 5 5m8-10 5 5-5 5m-3-13-2 20"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9zM14 3v6h6M8 14l-2 2 2 2m8-4 2 2-2 2m-3-5-2 8"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7zM3 10h18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="m8 4 12 8-12 8z"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="i-contract" viewBox="0 0 24 24"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M5.6 7a8 8 0 0 1 13-1L20 8M4 16l1.4 2a8 8 0 0 0 13-1"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="m10 5-7 7 7 7M3 12h18"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></symbol>
+  </defs></svg>
+
+  <div id="home" class="home">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Pocket HTML ホーム"><span class="brand-mark"><svg><use href="#i-code"/></svg></span><span>Pocket<span class="brand-light"> HTML</span></span></a>
+      <button class="help-button" data-open-help><svg><use href="#i-info"/></svg><span>使い方</span></button>
+    </header>
+    <main class="workspace">
+      <div class="intro">
+        <div class="eyebrow"><span></span> YOUR FILES. YOUR PLAYGROUND.</div>
+        <h1>ファイルから、<br class="mobile-break">すぐに。</h1>
+        <p>そのHTML、iPhoneでも開こう。<br class="mobile-break">ページも、ゲームも、ここから。</p>
+      </div>
+
+      <div class="workbench">
+        <section id="drop-zone" class="import-panel" aria-label="HTMLファイルを開く">
+          <div class="import-top"><span class="panel-label">OPEN A FILE</span><span class="format-label">HTML / ZIP</span></div>
+          <div class="import-body">
+            <div class="file-illustration" aria-hidden="true"><div class="file-shadow"></div><div class="file-sheet"><div class="fold"></div><svg><use href="#i-code"/></svg><span>.html</span></div><span class="file-spark">✦</span></div>
+            <h2>開きたいファイルを選択</h2>
+            <p>「ファイル」アプリに保存したHTMLを、<br>そのまま読み込めます。</p>
+            <button id="open-file" class="primary-button"><svg><use href="#i-folder"/></svg>ファイルを選んで開く<svg class="button-arrow"><use href="#i-arrow"/></svg></button>
+            <p class="drop-hint">PCではここにドラッグ＆ドロップもできます</p>
+          </div>
+          <div class="import-footer"><span class="status-dot"></span><span>端末内で読み込み。アップロード不要。</span></div>
+        </section>
+
+        <aside class="side-panel">
+          <div class="quick-guide"><span class="panel-label">HOW IT WORKS</span><ol><li><span class="step-number">01</span><div><strong>HTMLを保存</strong><p>iPhoneの「ファイル」アプリへ。</p></div></li><li><span class="step-number">02</span><div><strong>選んで開く</strong><p>このViewerでファイルを選択。</p></div></li><li><span class="step-number">03</span><div><strong>そのまま使う</strong><p>タッチ操作・ゲームの実行に対応。</p></div></li></ol><div class="zip-tip"><svg><use href="#i-folder"/></svg><p>画像・音声などが別ファイルなら、<strong>まとめてZIP</strong>に。</p></div></div>
+          <button id="open-demo" class="demo-card"><span class="demo-orbit" aria-hidden="true"><span></span><i></i></span><span class="demo-copy"><span class="panel-label">TRY IT OUT</span><strong>まずは、遊んでみる。</strong><span>タッチで遊べるサンプルゲーム</span></span><svg class="demo-play"><use href="#i-play"/></svg></button>
+        </aside>
+      </div>
+
+      <section class="recent-section" aria-labelledby="recent-heading">
+        <div class="section-top"><h2 id="recent-heading">最近開いたファイル <span id="recent-count">0</span></h2><label class="remember-option"><input id="remember-files" type="checkbox" checked>この端末に保存</label></div>
+        <div id="recent-list" class="recent-list"><p class="empty-recent">まだファイルがありません。開いたファイルはここから再開できます。</p></div>
+      </section>
+      <footer class="site-footer"><span class="footer-note">A little space for your HTML.</span><button data-open-help>対応範囲・使い方<svg><use href="#i-arrow"/></svg></button></footer>
+    </main>
+  </div>
+
+  <section id="player" class="player" aria-label="HTML Viewer" hidden>
+    <header class="player-bar">
+      <button id="close-player" class="icon-button" title="ホームへ戻る" aria-label="ホームへ戻る"><svg><use href="#i-back"/></svg></button>
+      <div class="document-name"><span id="player-name">HTML Viewer</span><small id="player-meta">読み込み中…</small></div>
+      <div class="player-actions">
+        <button id="choose-entry" class="icon-button" title="ZIP内のHTMLを選ぶ" aria-label="ZIP内のHTMLを選ぶ" hidden><svg><use href="#i-folder"/></svg></button>
+        <button id="reload-player" class="icon-button" title="再読み込み" aria-label="再読み込み"><svg><use href="#i-reload"/></svg></button>
+        <button id="expand-player" class="icon-button" title="画面いっぱいに表示" aria-label="画面いっぱいに表示"><svg><use href="#i-expand"/></svg></button>
+        <button id="player-info" class="icon-button" title="表示情報" aria-label="表示情報" aria-expanded="false"><svg><use href="#i-info"/></svg><span id="error-badge" hidden></span></button>
+      </div>
+    </header>
+    <div id="frame-container" class="frame-container"></div>
+    <div id="player-details" class="player-details" hidden><div class="details-top"><strong>表示情報</strong><button id="close-details" class="icon-button" aria-label="表示情報を閉じる"><svg><use href="#i-close"/></svg></button></div><p>音が出ない場合は、ゲーム内のスタートや音声ボタンをタップしてください。横向きのゲームは端末を横にすると遊びやすくなります。</p><ul id="diagnostics"></ul><button class="text-button" data-open-help>対応範囲を確認する</button></div>
+    <button id="exit-expanded" class="exit-expanded" hidden><svg><use href="#i-contract"/></svg><span>戻る</span></button>
+  </section>
+
+  <input id="file-input" type="file" multiple hidden>
+  <div id="busy" class="busy" role="status" hidden><span class="spinner"></span><span id="busy-text">ファイルを準備中…</span></div>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <dialog id="help-dialog" class="modal">
+    <div class="modal-heading"><div><span class="panel-label">A QUICK GUIDE</span><h2>Pocket HTML の使い方</h2></div><button class="icon-button" data-close-dialog aria-label="閉じる"><svg><use href="#i-close"/></svg></button></div>
+    <div class="help-content">
+      <h3>iPhoneで開く</h3><p>HTMLを「ファイル」アプリに保存し、このページの「ファイルを選んで開く」から選択します。iCloud Driveのファイルも選べます。よく使う場合はSafariの共有メニューから「ホーム画面に追加」すると便利です。</p>
+      <h3>画像や音声が別ファイルのとき</h3><p>HTMLと画像・CSS・JavaScriptなどを、フォルダ構成を保ったまま1つのZIPにしてください。ZIP内にHTMLが複数あれば、開くページを選べます。PCでは関連ファイルをまとめて選択する方法も使えます。読み込めるのは合計32MB・600ファイルまでです（ZIPは展開後も32MBまで）。パスワード付きZIPには対応していません。</p>
+      <h3>ブラウザゲームについて</h3><p>JavaScript、Canvas、WebGL、タッチ入力を使うゲームを実行できます。画面いっぱいに表示するボタンも使えます。音声はゲーム内でのタップが必要です。外部ライブラリを読み込むゲームにはインターネット接続が必要です。</p>
+      <p class="help-callout">どんなゲームでも動くわけではありません。サーバー、Cookie、IndexedDB、Service Worker、複数スレッドのWebAssemblyなどが必要なゲームや、CORS制限のある通信は対応できない場合があります。キーボード専用のゲームには外部キーボードが必要です。</p>
+      <h3>ファイルとセーブデータ</h3><p>選んだファイルをViewerからサーバーに送ることはありません。ただし、HTML自身の外部通信は実行されます。信頼できるファイルを開いてください。「この端末に保存」がオンなら、最近の5件をブラウザ内に保存します（1件32MBまで）。</p><p>ゲームのlocalStorage・sessionStorageは互換機能で処理します。ブラウザのデータ削除やプライベートモードでは履歴・セーブが消える場合があります。履歴の削除は保存したファイルを削除します。</p>
+      <a href="./examples/orbit-catch.html" download="orbit-catch.html" class="sample-download"><svg><use href="#i-file"/></svg>サンプルHTMLをダウンロード<svg><use href="#i-arrow"/></svg></a>
+    </div>
+  </dialog>
+  <dialog id="entry-dialog" class="modal entry-modal"><div class="modal-heading"><div><span class="panel-label">SELECT A PAGE</span><h2>開くHTMLを選択</h2></div><button class="icon-button" data-close-dialog aria-label="閉じる"><svg><use href="#i-close"/></svg></button></div><div id="entry-list" class="entry-list"></div></dialog>
+  <noscript>このViewerを利用するには、ブラウザのJavaScriptを有効にしてください。</noscript>
+</body>
+</html>

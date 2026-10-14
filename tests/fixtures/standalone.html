@@ -1,0 +1,8 @@
+<!doctype html><html lang="ja"><meta charset="utf-8"><title>Viewer integration checks</title><style>body{font:16px system-ui;padding:20px}li{margin:10px 0}button{padding:12px}canvas{width:240px;height:80px;background:#ceef84}</style><h1>Standalone checks</h1><ul id="results"></ul><canvas id="canvas"></canvas><p id="saved"></p><button id="save">セーブを増やす</button><button id="error">実行エラーを発生</button><script>
+const report=(label,value)=>{const li=document.createElement('li');li.textContent=label+': '+value;document.querySelector('#results').append(li)};
+try { parent.document.body; report('Isolation','FAIL'); } catch { report('Isolation','PASS'); }
+const canvas=document.querySelector('#canvas');canvas.width=canvas.clientWidth;canvas.height=canvas.clientHeight;report('Canvas',canvas.width>0&&canvas.height>0?'PASS':'FAIL');canvas.getContext('2d').fillText('HTML JavaScript is running',15,40);
+const update=()=>{document.querySelector('#saved').textContent='Saved: '+(localStorage.getItem('test-save')||'0')+' / Session: '+(sessionStorage.getItem('test-save')||'0')};update();
+document.querySelector('#save').onclick=()=>{localStorage.setItem('test-save',Number(localStorage.getItem('test-save')||0)+1);sessionStorage.setItem('test-save',Number(sessionStorage.getItem('test-save')||0)+1);update()};
+document.querySelector('#error').onclick=()=>{throw new Error('Expected integration error')};
+</script></html>

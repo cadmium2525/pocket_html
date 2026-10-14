@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#080e19">
+  <title>ORBIT CATCH — touch demo</title>
+  <style>
+    :root{color-scheme:dark;--ink:#080e19;--paper:#f0f4e7;--muted:#8c9aaa;--lime:#d5ff68;--line:#ffffff1b}
+    *{box-sizing:border-box}html,body{width:100%;height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+    body{font-family:ui-sans-serif,system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;background:var(--ink);color:var(--paper)}
+    button{font:inherit;cursor:pointer}button:focus-visible{outline:3px solid #fff;outline-offset:5px}
+    #field{display:block;width:100%;height:100%;touch-action:none;outline:none}
+    .hud{position:absolute;inset:0 0 auto;z-index:4;padding:calc(17px + env(safe-area-inset-top)) 22px 0;pointer-events:none}
+    .hud-top{display:flex;justify-content:space-between;align-items:center;gap:16px}.wordmark{font-size:11px;font-weight:750;letter-spacing:.2em}
+    .hud-controls{display:flex;gap:7px;pointer-events:auto}.utility{border:1px solid var(--line);border-radius:100px;color:var(--muted);background:#0b1325cc;padding:10px 13px;min-height:44px;font-size:11px;letter-spacing:.05em}
+    .utility:hover{border-color:#d5ff6870;color:var(--paper)}#pause:disabled{opacity:.4;cursor:default}
+    .hud-bottom{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:18px}.score-wrap{display:flex;align-items:baseline;gap:10px}
+    #score{font-size:38px;font-weight:700;letter-spacing:-.08em;font-variant-numeric:tabular-nums}.score-label,.meta-label{color:var(--muted);font-size:9px;font-weight:600;letter-spacing:.16em}
+    .status{display:flex;align-items:center;gap:19px}.time{font:600 20px ui-monospace,monospace;font-variant-numeric:tabular-nums}.time small{font-size:11px;color:var(--muted);margin-left:3px}
+    #lives{color:var(--lime);font-size:14px;letter-spacing:3px;white-space:nowrap}.meter{height:2px;background:var(--line);margin-top:12px;overflow:hidden}.meter span{display:block;height:100%;background:var(--lime);width:100%;transition:width .15s linear}
+    .overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;padding:135px 26px 85px;background:linear-gradient(180deg,#080e1900 5%,#080e1959 23%,#080e19c9 50%,#080e1966 100%)}
+    .overlay[hidden]{display:none}.panel{width:100%;max-width:380px;text-align:center}.eyebrow{font-size:10px;letter-spacing:.23em;font-weight:650;color:var(--lime)}
+    h1{font-size:clamp(48px,12vw,73px);font-weight:800;line-height:.94;letter-spacing:-.065em;margin:22px 0;color:var(--paper)}h1 span{color:var(--lime)}
+    .description{font-size:13px;line-height:1.9;margin:0 auto 25px;color:#b4c0cf}.primary{border:0;color:var(--ink);background:var(--lime);border-radius:100px;min-height:55px;padding:15px 32px;min-width:210px;font-size:14px;font-weight:750;box-shadow:0 0 42px #d5ff6815}
+    .primary:hover{background:#e6ff9f}.best{font-size:10px;letter-spacing:.09em;color:var(--muted);margin:18px 0}.best strong{font-family:ui-monospace,monospace;color:var(--paper);font-size:13px;margin-left:7px}
+    .tags{display:flex;justify-content:center;gap:8px;margin-top:25px}.tags span{font-size:8px;font-weight:600;letter-spacing:.11em;border:1px solid var(--line);padding:7px 10px;border-radius:20px;color:var(--muted)}
+    .footer{position:absolute;left:18px;right:18px;bottom:calc(17px + env(safe-area-inset-bottom));pointer-events:none;text-align:center;color:var(--muted);font-size:10px;letter-spacing:.025em;line-height:1.7}
+    .footer span{color:var(--lime)}#announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
+    @media(max-height:520px){.hud{padding-top:calc(9px + env(safe-area-inset-top))}.hud-bottom{margin-top:6px}#score{font-size:28px}.overlay{padding:100px 20px 35px}h1{font-size:43px;margin:10px 0}.description{margin-bottom:10px;font-size:11px}.primary{min-height:44px;padding:10px 25px}.tags{display:none}.best{margin:9px 0}.footer{bottom:5px;font-size:9px}}
+    @media(prefers-reduced-motion:reduce){.meter span{transition:none}}
+  </style>
+</head>
+<body>
+  <canvas id="field" tabindex="0" aria-label="ORBIT CATCH のプレイ画面。左右の矢印キーまたはドラッグで宇宙船を動かします。"></canvas>
+  <header class="hud">
+    <div class="hud-top"><div class="wordmark">ORBIT / CATCH</div><div class="hud-controls"><button class="utility" id="sound" aria-pressed="false">音 OFF</button><button class="utility" id="pause" disabled aria-label="ゲームを一時停止">Ⅱ</button></div></div>
+    <div class="hud-bottom"><div class="score-wrap"><span id="score">000</span><span class="score-label">SCORE</span></div><div class="status"><span id="lives" aria-label="残りライフ 3">●●●</span><span class="time"><span id="time">35</span><small>s</small></span></div></div>
+    <div class="meter"><span id="meter"></span></div>
+  </header>
+  <div class="overlay" id="overlay"><div class="panel"><div class="eyebrow" id="eyebrow">A SMALL SPACE BREAK</div><h1 id="title">ORBIT<br><span>CATCH.</span></h1><p class="description" id="description">指で宇宙船を左右に動かして、光のかけらを集めよう。<br>赤い隕石には気をつけて。</p><button class="primary" id="action">プレイする　↗</button><p class="best">PERSONAL BEST<strong id="best">0</strong></p><div class="tags"><span>35 SECONDS</span><span>TOUCH / ← →</span><span>ONE HTML</span></div></div></div>
+  <div class="footer" id="hint"><span>✦</span> 光のかけら +10　／　隕石に当たるとライフ −1</div>
+  <div id="announcement" aria-live="polite"></div>
+  <script>
+    (() => {
+      'use strict';
+      const canvas = document.getElementById('field'), ctx = canvas.getContext('2d');
+      const el = Object.fromEntries(['score','time','lives','meter','overlay','eyebrow','title','description','action','best','pause','sound','hint','announcement'].map(id => [id,document.getElementById(id)]));
+      const duration = 35, reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      let width=0,height=0,dpr=1,state='ready',score=0,lives=3,time=duration,combo=0,best=0,elapsed=0,spawnTimer=0,lastFrame=0,flash=0;
+      let items=[],particles=[],stars=[],ship={x:.5,target:.5},held={left:false,right:false},pointer=null,audioContext=null,soundOn=false;
+      try { best=Number(localStorage.getItem('orbit-catch.best'))||0; } catch (_) {}
+      el.best.textContent=best;
+      const random=(min,max)=>min+Math.random()*(max-min);
+      function resize(){
+        const box=canvas.getBoundingClientRect(),nextDpr=Math.min(devicePixelRatio||1,2);
+        if(box.width<=0||box.height<=0)return;
+        if(box.width===width&&box.height===height&&nextDpr===dpr)return;
+        width=box.width;height=box.height;dpr=nextDpr;
+        canvas.width=Math.round(width*dpr);canvas.height=Math.round(height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+        stars=Array.from({length:Math.min(110,Math.round(width*height/5500))},()=>({x:Math.random(),y:Math.random(),r:random(.5,1.5),alpha:random(.15,.7),phase:random(0,Math.PI*2)}));
+      }
+      function audioReady(){
+        if(!soundOn)return;
+        try{if(!audioContext)audioContext=new (window.AudioContext||window.webkitAudioContext)();audioContext.resume().catch(()=>{});}catch(_){}
+      }
+      function tone(frequency,length=.09,type='sine'){
+        if(!soundOn||!audioContext||audioContext.state!=='running')return;
+        const oscillator=audioContext.createOscillator(),gain=audioContext.createGain(),now=audioContext.currentTime;
+        oscillator.type=type;oscillator.frequency.setValueAtTime(frequency,now);oscillator.frequency.exponentialRampToValueAtTime(frequency*.65,now+length);
+        gain.gain.setValueAtTime(.055,now);gain.gain.exponentialRampToValueAtTime(.001,now+length);oscillator.connect(gain);gain.connect(audioContext.destination);oscillator.start(now);oscillator.stop(now+length);
+      }
+      function hud(){
+        el.score.textContent=String(score).padStart(3,'0');el.time.textContent=Math.ceil(time);el.meter.style.width=`${Math.max(0,time/duration*100)}%`;
+        el.lives.textContent='●'.repeat(lives)+'○'.repeat(3-lives);el.lives.setAttribute('aria-label',`残りライフ ${lives}`);
+      }
+      function start(){
+        audioReady();state='playing';score=0;lives=3;time=duration;combo=0;elapsed=0;spawnTimer=.3;items=[];particles=[];flash=0;ship.x=ship.target=.5;held.left=held.right=false;
+        el.overlay.hidden=true;el.pause.disabled=false;el.hint.innerHTML='<span>↔</span> 指を左右に動かす · キーボードは ← →';el.announcement.textContent='ゲーム開始';hud();canvas.focus({preventScroll:true});tone(420,.18);
+      }
+      function pause(){
+        if(state!=='playing')return;state='paused';held.left=held.right=false;pointer=null;
+        el.overlay.hidden=false;el.eyebrow.textContent='TAKE YOUR TIME';el.title.innerHTML='A LITTLE<br><span>PAUSE.</span>';el.description.textContent='準備ができたら、続きをどうぞ。';el.action.textContent='つづける　↗';
+        el.pause.disabled=true;el.announcement.textContent='一時停止';
+      }
+      function resume(){
+        audioReady();state='playing';el.overlay.hidden=true;el.pause.disabled=false;lastFrame=performance.now();canvas.focus({preventScroll:true});
+      }
+      function end(){
+        state='ended';el.pause.disabled=true;held.left=held.right=false;
+        const record=score>best;if(record){best=score;try{localStorage.setItem('orbit-catch.best',String(best));}catch(_){}el.best.textContent=best;}
+        el.overlay.hidden=false;el.eyebrow.textContent=record?'A NEW PERSONAL BEST':'NICE FLIGHT';el.title.innerHTML=`${score}<br><span>POINTS.</span>`;
+        el.description.textContent=lives===0?'隕石につかまった！もう一度、星を集めに行こう。':'35 秒の宇宙旅行、おつかれさま。もう一度飛んでみよう。';el.action.textContent='もう一度プレイ　↗';el.announcement.textContent=`ゲーム終了。スコア ${score}。ベスト ${best}。`;
+      }
+      function burst(x,y,color,count){for(let i=0;i<count;i++)particles.push({x,y,vx:random(-85,85),vy:random(-100,50),life:random(.3,.65),max:.65,r:random(1.5,3.5),color});}
+      function spawn(){
+        const meteor=Math.random()<.25,margin=Math.min(40,width*.12),x=random(margin,width-margin)/width;
+        items.push({x,y:-30,type:meteor?'meteor':'star',radius:meteor?13:9,speed:random(140,195)+elapsed*2.7,spin:random(-2,2),angle:random(0,Math.PI),phase:random(0,Math.PI*2)});
+      }
+      function update(dt){
+        if(state!=='playing')return;time=Math.max(0,time-dt);elapsed+=dt;spawnTimer-=dt;flash=Math.max(0,flash-dt*3);
+        const direction=Number(held.right)-Number(held.left);if(direction){ship.target=Math.min(.94,Math.max(.06,ship.target+direction*dt*1.2));}
+        ship.x+=(ship.target-ship.x)*Math.min(1,dt*18);
+        if(spawnTimer<=0){spawn();spawnTimer=random(.3,.5)-elapsed*.003;}
+        const shipY=height-Math.min(85,height*.19),shipX=ship.x*width;
+        for(let i=items.length-1;i>=0;i--){
+          const item=items[i];item.y+=item.speed*dt;item.angle+=item.spin*dt;
+          if(Math.abs(item.y-shipY)<item.radius+14&&Math.abs(item.x*width-shipX)<item.radius+24){
+            if(item.type==='star'){combo++;score+=10+(combo%5===0?10:0);burst(item.x*width,item.y,'#d5ff68',12);tone(600+Math.min(combo,12)*40);}
+            else{lives--;combo=0;flash=1;burst(item.x*width,item.y,'#ff836c',19);tone(130,.2,'triangle');}
+            items.splice(i,1);if(lives===0){end();break;}
+          }else if(item.y>height+40){items.splice(i,1);if(item.type==='star')combo=0;}
+        }
+        for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=120*dt;p.life-=dt;if(p.life<=0)particles.splice(i,1);}
+        hud();if(time<=0&&state==='playing')end();
+      }
+      function draw(now){
+        if(width<=0||height<=0)return;
+        ctx.clearRect(0,0,width,height);
+        const glow=ctx.createRadialGradient(width*.5,height*.25,0,width*.5,height*.25,Math.max(width,height)*.75);glow.addColorStop(0,'#182541');glow.addColorStop(.55,'#0b1324');glow.addColorStop(1,'#080e19');ctx.fillStyle=glow;ctx.fillRect(0,0,width,height);
+        for(const star of stars){ctx.globalAlpha=star.alpha*(reducedMotion?1:.8+.2*Math.sin(now*.0007+star.phase));ctx.fillStyle='#cbd8ed';ctx.beginPath();ctx.arc(star.x*width,star.y*height,star.r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+        ctx.save();ctx.translate(width*.5,height*.4);ctx.rotate(-.36);ctx.strokeStyle='#8aacff10';ctx.lineWidth=1;for(let i=1;i<=3;i++){ctx.beginPath();ctx.ellipse(0,0,width*(.25+i*.19),height*(.13+i*.065),0,0,Math.PI*2);ctx.stroke();}ctx.restore();
+        for(const item of items){
+          const x=item.x*width,y=item.y;ctx.save();ctx.translate(x,y);
+          if(item.type==='star'){
+            ctx.rotate(item.angle);ctx.shadowColor='#d5ff68';ctx.shadowBlur=17;ctx.fillStyle='#d5ff68';ctx.beginPath();ctx.moveTo(0,-11);ctx.lineTo(7,0);ctx.lineTo(0,11);ctx.lineTo(-7,0);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='#ffffff75';ctx.stroke();
+          }else{
+            const trail=ctx.createLinearGradient(0,-48,0,0);trail.addColorStop(0,'#ff836c00');trail.addColorStop(1,'#ff836c60');ctx.fillStyle=trail;ctx.beginPath();ctx.moveTo(-9,0);ctx.lineTo(-2,-48);ctx.lineTo(9,0);ctx.fill();ctx.rotate(item.angle);ctx.fillStyle='#cf6558';ctx.shadowColor='#ff836c';ctx.shadowBlur=12;ctx.beginPath();for(let j=0;j<7;j++){const a=j/7*Math.PI*2,r=j%2?11:14;ctx.lineTo(Math.cos(a)*r,Math.sin(a)*r);}ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#893d43';ctx.beginPath();ctx.arc(-3,-3,4,0,Math.PI*2);ctx.fill();
+          }ctx.restore();
+        }
+        for(const p of particles){ctx.globalAlpha=Math.min(1,p.life/p.max);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+        const x=ship.x*width,y=height-Math.min(85,height*.19),tilt=(ship.target-ship.x)*.9;
+        ctx.save();ctx.translate(x,y);ctx.rotate(tilt);
+        ctx.strokeStyle='#d5ff682b';ctx.beginPath();ctx.ellipse(0,17,39,7,0,0,Math.PI*2);ctx.stroke();
+        const engine=ctx.createLinearGradient(0,9,0,37);engine.addColorStop(0,'#d5ff68bb');engine.addColorStop(1,'#d5ff6800');ctx.fillStyle=engine;ctx.beginPath();ctx.moveTo(-5,10);ctx.lineTo(0,32+(reducedMotion?0:Math.sin(now*.02)*3));ctx.lineTo(5,10);ctx.fill();
+        ctx.shadowColor=flash?'#ff836c':'#d5ff68';ctx.shadowBlur=13;ctx.fillStyle=flash?'#ffb5a3':'#e4ff9f';ctx.beginPath();ctx.moveTo(0,-17);ctx.lineTo(22,10);ctx.lineTo(6,6);ctx.lineTo(0,11);ctx.lineTo(-6,6);ctx.lineTo(-22,10);ctx.closePath();ctx.fill();ctx.shadowBlur=0;ctx.fillStyle='#365056';ctx.beginPath();ctx.moveTo(0,-8);ctx.lineTo(4,1);ctx.lineTo(-4,1);ctx.closePath();ctx.fill();ctx.restore();
+        if(flash>0){ctx.fillStyle=`rgba(255,94,76,${flash*.1})`;ctx.fillRect(0,0,width,height);}
+      }
+      function frame(now){const dt=Math.min(.04,(now-lastFrame)/1000||0);lastFrame=now;update(dt);draw(now);requestAnimationFrame(frame);}
+      function point(event){if(state!=='playing')return;const box=canvas.getBoundingClientRect();ship.target=Math.min(.94,Math.max(.06,(event.clientX-box.left)/box.width));}
+      canvas.addEventListener('pointerdown',event=>{if(state!=='playing')return;event.preventDefault();pointer=event.pointerId;canvas.setPointerCapture(pointer);point(event);audioReady();});
+      canvas.addEventListener('pointermove',event=>{if(event.pointerId===pointer){event.preventDefault();point(event);}});
+      for(const name of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(name,()=>{pointer=null;});
+      document.addEventListener('keydown',event=>{
+        if(state!=='playing')return;
+        if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();held[event.key==='ArrowLeft'?'left':'right']=true;}
+        else if(event.key==='Escape'||event.key==='p'){event.preventDefault();pause();}
+      });
+      document.addEventListener('keyup',event=>{if(event.key==='ArrowLeft')held.left=false;if(event.key==='ArrowRight')held.right=false;});
+      window.addEventListener('blur',pause);document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('resize',resize);
+      if(typeof ResizeObserver!=='undefined')new ResizeObserver(resize).observe(canvas);
+      el.action.addEventListener('click',()=>state==='paused'?resume():start());el.pause.addEventListener('click',pause);
+      el.sound.addEventListener('click',()=>{soundOn=!soundOn;el.sound.textContent=soundOn?'音 ON':'音 OFF';el.sound.setAttribute('aria-pressed',String(soundOn));audioReady();if(soundOn)tone(640,.13);});
+      resize();hud();requestAnimationFrame(frame);
+    })();
+  </script>
+</body>
+</html>
