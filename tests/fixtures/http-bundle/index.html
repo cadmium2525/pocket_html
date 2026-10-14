@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <base href="/dist/">
+  <title>HTTP bundle checks</title>
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+  <main>
+    <h1>HTTP bundle checks</h1>
+    <p>Vite のビルド済みファイルなど、HTTP 配信が必要な ZIP の確認用です。</p>
+    <p id="summary" role="status">実行中…</p>
+    <ul id="results"></ul>
+    <p><button id="save" type="button">セーブを増やす</button> Saved: <output id="saved">0</output></p>
+    <p><a href="./second.html">次のページ</a></p>
+    <div id="css-image" aria-label="CSS asset"></div>
+  </main>
+  <script>
+    window.addEventListener('error', (event) => {
+      const result = document.createElement('li');
+      result.className = 'fail';
+      result.textContent = 'FAIL: ' + (event.message || 'script / asset loading');
+      document.getElementById('results').append(result);
+      document.getElementById('summary').textContent = 'FAIL: ページの起動エラー';
+    });
+  </script>
+  <script type="module" src="/assets/main.js"></script>
+</body>
+</html>

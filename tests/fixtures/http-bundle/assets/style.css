@@ -1,0 +1,10 @@
+:root { color-scheme: dark; font: 16px/1.5 system-ui, sans-serif; --http-fixture-loaded: yes; }
+body { margin: 0; background: #101d28; color: #edf3f8; }
+main { max-width: 720px; margin: auto; padding: 20px; }
+h1 { margin-top: 0; font-size: 24px; }
+a { color: #80d8ff; }
+button { font: inherit; padding: 10px 18px; background: #233a4a; color: white; border: 1px solid #557589; border-radius: 6px; touch-action: manipulation; }
+li { margin: 6px 0; overflow-wrap: anywhere; }
+.pass { color: #95e2b4; }
+.fail { color: #ff9090; }
+#css-image { width: 32px; height: 32px; background: url('/assets/pixel.svg') center / contain no-repeat; }

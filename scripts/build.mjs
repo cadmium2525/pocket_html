@@ -5,7 +5,7 @@ import { resolve } from 'node:path';
 const root = resolve(process.cwd());
 const destination = resolve(root, 'dist');
 await mkdir(destination, { recursive: true });
-for (const name of ['index.html', 'styles.css', 'icon.svg', 'manifest.webmanifest', '.nojekyll', 'THIRD_PARTY_LICENSES.txt', 'js', 'examples']) {
+for (const name of ['index.html', 'styles.css', 'icon.svg', 'manifest.webmanifest', 'http-sw.js', '.nojekyll', 'THIRD_PARTY_LICENSES.txt', 'js', 'examples']) {
   await cp(resolve(root, name), resolve(destination, name), { recursive: true });
 }
 console.log('GitHub Pages files prepared in dist/');

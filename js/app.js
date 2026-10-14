@@ -1,4 +1,5 @@
 import { prepareDocument } from './viewer-engine.js';
+import { prepareHttpDocument } from './http-runtime.js';
 import { listRecent, saveRecent, readRecent, removeRecent } from './db.js';
 
 const $ = selector => document.querySelector(selector);
@@ -16,6 +17,7 @@ let nativeFullscreen = false;
 let diagnosticsCount = 0;
 let errorCount = 0;
 let sessionSaved = false;
+const trustedDocuments = new Set();
 
 try { remember.checked = localStorage.getItem('pocket-html-remember') !== 'false'; } catch { /* Storage is optional. */ }
 
@@ -73,14 +75,19 @@ function eventMessage(event) {
 function onViewerEvent(session, event) {
   if (session !== activeSession) return;
   if (event.type === 'ready') {
-    $('#player-meta').textContent = `${session.fileCount || 1}ファイル · 表示中`;
+    $('#player-meta').textContent = playerMeta(session, '表示中');
+    document.title = `${session.title || session.name} — Pocket HTML`;
   } else if (event.type === 'error') {
     addDiagnostic(eventMessage(event), 'error');
   } else if (event.type === 'storage-warning' || event.type === 'warning') {
     addDiagnostic(eventMessage(event), 'warning');
   } else if (event.type === 'navigate') {
-    void openFiles(currentFiles, { entryPath: event.entryPath, hash: event.hash, save: remember.checked && sessionSaved });
+    void openFiles(currentFiles, { entryPath: event.entryPath, hash: event.hash, mode: session.mode || 'isolated', save: remember.checked && sessionSaved });
   }
+}
+
+function playerMeta(session, status) {
+  return `${session.fileCount || 1}ファイル · ${session.mode === 'http' ? 'HTTP · ' : ''}${status}`;
 }
 
 async function refreshRecent() {
@@ -143,14 +150,15 @@ async function refreshRecent() {
   }
 }
 
-async function openFiles(inputFiles, { entryPath, hash, save = remember.checked } = {}) {
+async function openFiles(inputFiles, { entryPath, hash, mode = 'isolated', save = remember.checked } = {}) {
   const files = Array.from(inputFiles);
   if (!files.length) { setBusy(false); return; }
   const ticket = ++operation;
   let nextSession;
   setBusy(true);
   try {
-    nextSession = await prepareDocument(files, { entryPath, hash });
+    if (mode === 'http' && (!activeSession || !trustedDocuments.has(activeSession.documentKey))) throw new Error('HTTPモードは、信頼するファイルで選択してください。');
+    nextSession = mode === 'http' ? await prepareHttpDocument(files, { entryPath, hash }) : await prepareDocument(files, { entryPath, hash });
     if (ticket !== operation) { nextSession.dispose(); return; }
     const previousSession = activeSession;
     const wasSaved = sessionSaved && previousSession?.documentKey === nextSession.documentKey;
@@ -164,18 +172,22 @@ async function openFiles(inputFiles, { entryPath, hash, save = remember.checked 
     $('#player-info').setAttribute('aria-label', '表示情報');
     toggleDetails(false);
     $('#player-name').textContent = nextSession.name || files[0].name;
-    $('#player-meta').textContent = `${nextSession.fileCount || files.length}ファイル · 読み込み中…`;
+    $('#player-name').title = nextSession.name || files[0].name;
+    $('#player-meta').textContent = playerMeta(nextSession, '読み込み中…');
+    $('#http-mode').setAttribute('aria-pressed', String(mode === 'http'));
+    $('#http-mode').setAttribute('aria-label', mode === 'http' ? '通常の隔離表示に戻す' : 'HTTPモードに切り替える');
+    $('#http-mode').title = mode === 'http' ? '通常の隔離表示に戻す' : 'HTTPモードに切り替える';
     $('#choose-entry').hidden = !nextSession.entries || nextSession.entries.length < 2;
     for (const warning of nextSession.warnings || []) addDiagnostic(typeof warning === 'string' ? warning : warning.message, 'warning');
     const iframe = document.createElement('iframe');
     iframe.title = nextSession.title || nextSession.name || 'HTMLファイルの表示';
-    iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads');
+    iframe.setAttribute('sandbox', `allow-scripts allow-forms allow-modals allow-pointer-lock allow-downloads${mode === 'http' ? ' allow-same-origin' : ''}`);
     iframe.setAttribute('allow', 'autoplay; fullscreen; gamepad');
     iframe.setAttribute('allowfullscreen', '');
     iframe.setAttribute('referrerpolicy', 'no-referrer');
     nextSession.attach(iframe, event => onViewerEvent(nextSession, event));
     iframe.addEventListener('load', () => {
-      if (activeSession === nextSession) $('#player-meta').textContent = `${nextSession.fileCount || 1}ファイル · 表示中`;
+      if (activeSession === nextSession) $('#player-meta').textContent = playerMeta(nextSession, '表示中');
     });
     home.hidden = true;
     player.hidden = false;
@@ -183,7 +195,8 @@ async function openFiles(inputFiles, { entryPath, hash, save = remember.checked 
     // Size the visible stage before the imported page measures its Canvas.
     frameContainer.replaceChildren(iframe);
     iframe.getBoundingClientRect();
-    iframe.srcdoc = nextSession.html;
+    if (mode === 'http') iframe.src = nextSession.url;
+    else iframe.srcdoc = nextSession.html;
     previousSession?.dispose();
     document.title = `${nextSession.title || nextSession.name} — Pocket HTML`;
     setBusy(false);
@@ -265,7 +278,7 @@ function chooseEntry() {
     button.setAttribute('aria-current', String(entry.path === activeSession.entryPath));
     button.addEventListener('click', () => {
       $('#entry-dialog').close();
-      void openFiles(currentFiles, { entryPath: entry.path, save: remember.checked && sessionSaved });
+      void openFiles(currentFiles, { entryPath: entry.path, mode: activeSession.mode || 'isolated', save: remember.checked && sessionSaved });
     });
     list.append(button);
   }
@@ -288,7 +301,27 @@ $('#open-demo').addEventListener('click', async () => {
 });
 $('#close-player').addEventListener('click', () => void closePlayer());
 $('#reload-player').addEventListener('click', () => {
-  if (activeSession) void openFiles(currentFiles, { entryPath: activeSession.entryPath, save: false });
+  if (activeSession) void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: activeSession.mode || 'isolated', save: false });
+});
+$('#http-mode').addEventListener('click', () => {
+  if (!activeSession) return;
+  if (activeSession.mode === 'http') {
+    void openFiles(currentFiles, { entryPath: activeSession.entryPath, save: false });
+  } else if (trustedDocuments.has(activeSession.documentKey)) {
+    void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', save: false });
+  } else {
+    $('#http-dialog').dataset.documentKey = activeSession.documentKey;
+    $('#http-file-name').textContent = activeSession.name;
+    $('#http-dialog').showModal();
+  }
+});
+$('#cancel-http').addEventListener('click', () => $('#http-dialog').close());
+$('#confirm-http').addEventListener('click', () => {
+  const key = $('#http-dialog').dataset.documentKey;
+  $('#http-dialog').close();
+  if (!activeSession || activeSession.documentKey !== key) return;
+  trustedDocuments.add(key);
+  void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', save: remember.checked && sessionSaved });
 });
 $('#expand-player').addEventListener('click', () => void expandPlayer());
 $('#exit-expanded').addEventListener('click', () => void exitExpanded());

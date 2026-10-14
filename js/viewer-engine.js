@@ -298,8 +298,8 @@ function readSnapshot(storage, key) {
   } catch { return Object.create(null); }
 }
 
-/** Prepare an isolated document. No uploaded files leave this browser. */
-export async function prepareDocument(input, options = {}) {
+/** Read a validated bundle for either isolated display or browser-local HTTP. */
+export async function readDocumentBundle(input, options = {}) {
   const { records, name } = await collectFiles(input);
   const entries = records.filter(record => htmlPath(record.path)).map(record => ({ path: record.path, name: record.path.split('/').pop() }));
   entries.sort((a, b) => {
@@ -310,6 +310,13 @@ export async function prepareDocument(input, options = {}) {
   const entryPath = options.entryPath || entries[0].path;
   const primary = records.find(record => record.path === entryPath && htmlPath(record.path));
   if (!primary) throw new Error('指定されたHTMLファイルが見つかりません。');
+  const parsed = new DOMParser().parseFromString(decodeHtml(primary.bytes), 'text/html');
+  return { records, name, entries, entryPath, primary, title: parsed.title.trim() || primary.path.split('/').pop(), documentKey: await contentKey(records) };
+}
+
+/** Prepare an isolated document. No uploaded files leave this browser. */
+export async function prepareDocument(input, options = {}) {
+  const { records, name, entries, entryPath, primary, documentKey } = await readDocumentBundle(input, options);
   const warningSet = new Set(), warn = value => warningSet.add(value);
   const paths = new Set(records.map(record => record.path));
   const assets = Object.create(null), cssRecords = new Map(), javascriptRecords = new Map();
@@ -455,7 +462,7 @@ export async function prepareDocument(input, options = {}) {
     }
     if (element.tagName === 'LINK') { element.removeAttribute('integrity'); element.removeAttribute('crossorigin'); }
   }
-  const documentKey = await contentKey(records), tokenBytes = new Uint8Array(16);
+  const tokenBytes = new Uint8Array(16);
   crypto.getRandomValues(tokenBytes);
   const token = [...tokenBytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
   const storageKey = STORAGE_PREFIX + documentKey;

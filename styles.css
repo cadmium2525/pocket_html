@@ -18,3 +18,12 @@
 .recent-remove{min-width:44px;min-height:44px}
 .help-button{min-height:44px}
 @media(max-width:760px){.player-bar{padding-left:max(6px,env(safe-area-inset-left));padding-right:max(6px,env(safe-area-inset-right))}.player-actions .icon-button{width:44px;height:44px}.document-name{min-width:35px}.exit-expanded{min-height:44px}}
+
+.import-body>.http-hint{font-size:10px;line-height:1.8;margin:12px 0 0;color:#a8b997}
+.http-button{font:700 10px ui-monospace,SFMono-Regular,Consolas,monospace;min-width:44px;min-height:44px;padding:0 8px;letter-spacing:.3px;background:none;border:0;border-radius:8px;color:#a6b3bb}
+.http-button:hover{background:#2c373e;color:var(--text)}
+.http-button[aria-pressed="true"]{background:#303d24;color:var(--accent);box-shadow:inset 0 0 0 1px #6b8251}
+.http-dialog-actions{display:flex;flex-direction:column;gap:8px;margin-top:20px;align-items:stretch}
+.http-dialog-actions .primary-button{font-size:12px;width:100%}
+#http-file-name{font-weight:600;color:var(--text);overflow-wrap:anywhere}
+@media(max-width:360px){.player-actions{gap:0}.http-button{min-width:40px;padding:0 6px}.player-bar{gap:3px}.document-name{min-width:24px}}
