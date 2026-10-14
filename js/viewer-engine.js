@@ -1,4 +1,4 @@
-import { readZip, IMPORT_LIMITS, normalizeArchivePath } from './zip.js';
+import { readZip, inspectZip, IMPORT_LIMITS, getImportLimits, normalizeArchivePath } from './zip.js';
 
 const VIRTUAL_ORIGIN = 'https://html-viewer.local.invalid';
 const STORAGE_PREFIX = 'html-viewer:game:v1:';
@@ -64,14 +64,70 @@ async function contentKey(records) {
   return `legacy-${(hash >>> 0).toString(16)}`;
 }
 
-async function collectFiles(input) {
+async function readyZipWorker() {
+  if (typeof globalThis.Worker !== 'function') return null;
+  let worker;
+  try { worker = new Worker(new URL('./zip-worker.js', import.meta.url), { type: 'module', name: 'pocket-html-zip' }); }
+  catch { return null; }
+  return new Promise(resolve => {
+    const finish = ready => {
+      clearTimeout(timeout);
+      worker.onmessage = null; worker.onerror = null; worker.onmessageerror = null;
+      if (!ready) worker.terminate();
+      resolve(ready ? worker : null);
+    };
+    const timeout = setTimeout(() => finish(false), 10000);
+    worker.onmessage = event => { if (event.data?.type === 'ready') finish(true); };
+    worker.onerror = event => { event.preventDefault(); finish(false); };
+    worker.onmessageerror = () => finish(false);
+  });
+}
+
+async function extractZip(bytes, limits) {
+  if (limits === IMPORT_LIMITS) return readZip(bytes, limits);
+  // Check the size and directory before starting a worker or allocating outputs.
+  inspectZip(bytes, limits);
+  const worker = await readyZipWorker();
+  if (!worker) {
+    throw new Error('大容量ZIPの展開機能を起動できませんでした。ページを再読み込みするか、ZIPを32MB以下にして大容量モードをオフにしてください。');
+  }
+  return new Promise((resolve, reject) => {
+    const finish = (error, records) => {
+      clearTimeout(timeout);
+      worker.onmessage = null; worker.onerror = null; worker.onmessageerror = null;
+      worker.terminate();
+      error ? reject(error) : resolve(records);
+    };
+    const timeout = setTimeout(() => finish(new Error('ZIPの展開に時間がかかりすぎました。ファイルを小さくして開き直してください。')), 120000);
+    worker.onmessage = event => {
+      if (event.data?.type === 'result') finish(null, event.data.records);
+      else if (event.data?.type === 'error') finish(new Error(event.data.message || 'ZIPを展開できませんでした。'));
+    };
+    worker.onerror = event => {
+      event.preventDefault();
+      finish(new Error('ZIPの展開を続けられませんでした。ほかのアプリを閉じるか、ファイルを小さくして開き直してください。'));
+    };
+    worker.onmessageerror = () => finish(new Error('ZIPの展開結果を読み取れませんでした。'));
+    try {
+      // Transfer ownership instead of making a second copy of a large archive.
+      worker.postMessage({ bytes, largeFiles: true }, [bytes.buffer]);
+    } catch {
+      finish(new Error('ZIPを展開するためのデータを渡せませんでした。開き直してください。'));
+    }
+  });
+}
+
+async function collectFiles(input, limits = IMPORT_LIMITS) {
   const files = [...input];
   if (!files.length) throw new Error('HTMLファイルまたはZIPを選んでください。');
-  if (files.length > IMPORT_LIMITS.files) throw new Error('一度に開くファイルは600個以下にしてください。');
+  if (files.length > limits.files) throw new Error(`一度に開くファイルは${limits.files}個以下にしてください。`);
   const total = files.reduce((sum, file) => sum + file.size, 0);
-  if (total > IMPORT_LIMITS.bytes) throw new Error('ファイルの合計サイズは32MB以下にしてください。');
+  if (total > limits.bytes) {
+    const largerImportHint = limits === IMPORT_LIMITS ? ' 大きなファイルは「大容量モード」をオンにして開いてください。' : '';
+    throw new Error(`ファイルの合計サイズは${limits.bytes / (1024 * 1024)}MB以下にしてください。${largerImportHint}`);
+  }
   if (files.length === 1 && /\.zip$/i.test(files[0].name)) {
-    return { records: readZip(new Uint8Array(await files[0].arrayBuffer())), name: files[0].name };
+    return { records: await extractZip(new Uint8Array(await files[0].arrayBuffer()), limits), name: files[0].name };
   }
   if (files.some(file => /\.zip$/i.test(file.name))) throw new Error('ZIPは1つずつ開いてください。');
   const records = [], seen = new Set();
@@ -300,7 +356,8 @@ function readSnapshot(storage, key) {
 
 /** Read a validated bundle for either isolated display or browser-local HTTP. */
 export async function readDocumentBundle(input, options = {}) {
-  const { records, name } = await collectFiles(input);
+  const largeFiles = options.largeFiles === true;
+  const { records, name } = await collectFiles(input, getImportLimits(largeFiles));
   const entries = records.filter(record => htmlPath(record.path)).map(record => ({ path: record.path, name: record.path.split('/').pop() }));
   entries.sort((a, b) => {
     const index = path => /(^|\/)index\.html?$/i.test(path) ? 0 : 1;
@@ -311,12 +368,12 @@ export async function readDocumentBundle(input, options = {}) {
   const primary = records.find(record => record.path === entryPath && htmlPath(record.path));
   if (!primary) throw new Error('指定されたHTMLファイルが見つかりません。');
   const parsed = new DOMParser().parseFromString(decodeHtml(primary.bytes), 'text/html');
-  return { records, name, entries, entryPath, primary, title: parsed.title.trim() || primary.path.split('/').pop(), documentKey: await contentKey(records) };
+  return { records, name, entries, entryPath, primary, title: parsed.title.trim() || primary.path.split('/').pop(), documentKey: await contentKey(records), largeFiles };
 }
 
 /** Prepare an isolated document. No uploaded files leave this browser. */
 export async function prepareDocument(input, options = {}) {
-  const { records, name, entries, entryPath, primary, documentKey } = await readDocumentBundle(input, options);
+  const { records, name, entries, entryPath, primary, documentKey, largeFiles } = await readDocumentBundle(input, options);
   const warningSet = new Set(), warn = value => warningSet.add(value);
   const paths = new Set(records.map(record => record.path));
   const assets = Object.create(null), cssRecords = new Map(), javascriptRecords = new Map();
@@ -482,7 +539,7 @@ export async function prepareDocument(input, options = {}) {
   const html = '<!doctype html>\n' + document.documentElement.outerHTML;
   let frame = null, handler = null, listener = null, disposed = false, quotaReported = false;
   const session = {
-    html, title, name, documentKey, entryPath, entries, fileCount: records.length, warnings: [...warningSet],
+    html, title, name, documentKey, entryPath, entries, largeFiles, fileCount: records.length, warnings: [...warningSet],
     attach(iframe, onEvent = () => {}) {
       if (disposed) throw new Error('このViewerセッションは終了しています。');
       if (listener) window.removeEventListener('message', listener);

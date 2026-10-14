@@ -1,6 +1,18 @@
 import { inflateSync } from './vendor/fflate.js';
 
 export const IMPORT_LIMITS = Object.freeze({ bytes: 32 * 1024 * 1024, files: 600 });
+export const LARGE_IMPORT_LIMITS = Object.freeze({ bytes: 128 * 1024 * 1024, files: 600 });
+
+export function getImportLimits(largeFiles = false) {
+  return largeFiles === true ? LARGE_IMPORT_LIMITS : IMPORT_LIMITS;
+}
+
+function validateLimits(limits) {
+  if (limits !== IMPORT_LIMITS && limits !== LARGE_IMPORT_LIMITS) {
+    throw new Error('読み込みサイズの設定が正しくありません。');
+  }
+  return limits;
+}
 
 /** ZIP names are virtual paths, never filesystem paths. Reject ambiguous paths. */
 export function normalizeArchivePath(name) {
@@ -26,9 +38,12 @@ function crc32(bytes) {
 }
 
 /** Preflight the central directory before allocating any decompressed buffers. */
-export function inspectZip(bytes) {
-  if (!(bytes instanceof Uint8Array) || bytes.length > IMPORT_LIMITS.bytes) {
-    throw new Error('ZIPは32MB以下にしてください。');
+export function inspectZip(bytes, limits = IMPORT_LIMITS) {
+  validateLimits(limits);
+  const maximumMB = limits.bytes / (1024 * 1024);
+  const largerImportHint = limits === IMPORT_LIMITS ? ' 大きなファイルは「大容量モード」をオンにして開いてください。' : '';
+  if (!(bytes instanceof Uint8Array) || bytes.length > limits.bytes) {
+    throw new Error(`ZIPは${maximumMB}MB以下にしてください。${largerImportHint}`);
   }
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const u16 = offset => view.getUint16(offset, true);
@@ -45,7 +60,7 @@ export function inspectZip(bytes) {
   if (count === 0xffff || directorySize === 0xffffffff || directoryOffset === 0xffffffff) {
     throw new Error('ZIP64には対応していません。通常のZIPで保存してください。');
   }
-  if (count > IMPORT_LIMITS.files) throw new Error('ZIP内のファイル数は600個以下にしてください。');
+  if (count > limits.files) throw new Error(`ZIP内のファイル数は${limits.files}個以下にしてください。`);
   if (directoryOffset + directorySize > end) throw new Error('ZIPの索引が壊れています。');
   const entries = [], seen = new Set();
   let offset = directoryOffset, total = 0;
@@ -68,8 +83,8 @@ export function inspectZip(bytes) {
     if (seen.has(path)) throw new Error('ZIP内に重複するファイル名があります。');
     seen.add(path);
     total += size;
-    if (size > IMPORT_LIMITS.bytes || total > IMPORT_LIMITS.bytes) {
-      throw new Error('ZIPを展開した合計サイズは32MB以下にしてください。');
+    if (size > limits.bytes || total > limits.bytes) {
+      throw new Error(`ZIPを展開した合計サイズは${maximumMB}MB以下にしてください。${largerImportHint}`);
     }
     if (localOffset + 30 > directoryOffset || u32(localOffset) !== 0x04034b50) {
       throw new Error('ZIPのファイル位置が壊れています。');
@@ -90,8 +105,8 @@ export function inspectZip(bytes) {
   return entries;
 }
 
-export function readZip(bytes) {
-  const records = inspectZip(bytes);
+export function readZip(bytes, limits = IMPORT_LIMITS) {
+  const records = inspectZip(bytes, limits);
   return records.map(record => {
     const compressed = bytes.subarray(record.dataOffset, record.dataOffset + record.compressedSize);
     let data;

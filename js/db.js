@@ -1,5 +1,6 @@
+import { getImportLimits } from './zip.js';
+
 const DB_NAME = 'pocket-html-files';
-const MAX_BYTES = 32 * 1024 * 1024;
 const MAX_HISTORY = 5;
 let connection;
 
@@ -39,10 +40,10 @@ export async function listRecent() {
 
 export async function saveRecent(files, session) {
   const bytes = files.reduce((sum, file) => sum + file.size, 0);
-  if (bytes > MAX_BYTES) return false;
+  if (bytes > getImportLimits(session.largeFiles).bytes) return false;
   const record = {
     id: session.documentKey, name: files.length === 1 ? files[0].name : session.name,
-    title: session.title, bytes, openedAt: Date.now(), entryPath: session.entryPath,
+    title: session.title, bytes, openedAt: Date.now(), entryPath: session.entryPath, largeFiles: session.largeFiles === true,
     files: files.map(file => ({ name: file.webkitRelativePath || file.name, blob: file, type: file.type, lastModified: file.lastModified })),
   };
   await transaction('readwrite', store => store.put(record));
@@ -56,7 +57,7 @@ export async function readRecent(id) {
   const record = await transaction('readonly', store => store.get(id));
   if (!record) throw new Error('保存済みのファイルが見つかりません。もう一度ファイルを選択してください。');
   const files = record.files.map(item => new File([item.blob], item.name, { type: item.type, lastModified: item.lastModified }));
-  return { files, entryPath: record.entryPath };
+  return { files, entryPath: record.entryPath, largeFiles: record.largeFiles === true };
 }
 
 export async function removeRecent(id) {

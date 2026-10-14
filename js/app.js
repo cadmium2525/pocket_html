@@ -1,6 +1,7 @@
 import { prepareDocument } from './viewer-engine.js';
 import { prepareHttpDocument } from './http-runtime.js';
 import { listRecent, saveRecent, readRecent, removeRecent } from './db.js';
+import { getImportLimits } from './zip.js';
 
 const $ = selector => document.querySelector(selector);
 const home = $('#home');
@@ -8,6 +9,7 @@ const player = $('#player');
 const frameContainer = $('#frame-container');
 const fileInput = $('#file-input');
 const remember = $('#remember-files');
+const largeFilesOption = $('#large-files');
 let activeSession = null;
 let currentFiles = [];
 let operation = 0;
@@ -20,6 +22,15 @@ let sessionSaved = false;
 const trustedDocuments = new Set();
 
 try { remember.checked = localStorage.getItem('pocket-html-remember') !== 'false'; } catch { /* Storage is optional. */ }
+try { largeFilesOption.checked = localStorage.getItem('pocket-html-large-files') === 'true'; } catch { /* Storage is optional. */ }
+
+function updateCapacityNote() {
+  const limit = getImportLimits(largeFilesOption.checked).bytes / (1024 * 1024);
+  $('#capacity-note').textContent = largeFilesOption.checked
+    ? `合計${limit}MB・600ファイルまで（ZIPは展開後も）。端末によって読み込みに時間がかかったり、開けない場合があります。`
+    : `合計${limit}MB・600ファイルまで。ZIPは展開後も同じ上限です。`;
+}
+updateCapacityNote();
 
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -82,12 +93,12 @@ function onViewerEvent(session, event) {
   } else if (event.type === 'storage-warning' || event.type === 'warning') {
     addDiagnostic(eventMessage(event), 'warning');
   } else if (event.type === 'navigate') {
-    void openFiles(currentFiles, { entryPath: event.entryPath, hash: event.hash, mode: session.mode || 'isolated', save: remember.checked && sessionSaved });
+    void openFiles(currentFiles, { entryPath: event.entryPath, hash: event.hash, mode: session.mode || 'isolated', largeFiles: session.largeFiles, save: remember.checked && sessionSaved });
   }
 }
 
 function playerMeta(session, status) {
-  return `${session.fileCount || 1}ファイル · ${session.mode === 'http' ? 'HTTP · ' : ''}${status}`;
+  return `${session.fileCount || 1}ファイル · ${session.largeFiles ? '大容量 · ' : ''}${session.mode === 'http' ? 'HTTP · ' : ''}${status}`;
 }
 
 async function refreshRecent() {
@@ -126,7 +137,7 @@ async function refreshRecent() {
         setBusy(true, '保存したファイルを開いています…');
         try {
           const saved = await readRecent(record.id);
-          await openFiles(saved.files, { entryPath: saved.entryPath, save: remember.checked });
+          await openFiles(saved.files, { entryPath: saved.entryPath, largeFiles: saved.largeFiles, save: remember.checked });
         } catch (error) { setBusy(false); showToast(error.message, true); }
       });
       const remove = document.createElement('button');
@@ -150,15 +161,15 @@ async function refreshRecent() {
   }
 }
 
-async function openFiles(inputFiles, { entryPath, hash, mode = 'isolated', save = remember.checked } = {}) {
+async function openFiles(inputFiles, { entryPath, hash, mode = 'isolated', largeFiles = largeFilesOption.checked, save = remember.checked } = {}) {
   const files = Array.from(inputFiles);
   if (!files.length) { setBusy(false); return; }
   const ticket = ++operation;
   let nextSession;
-  setBusy(true);
+  setBusy(true, largeFiles ? '大容量ファイルを準備中…' : 'ファイルを準備中…');
   try {
     if (mode === 'http' && (!activeSession || !trustedDocuments.has(activeSession.documentKey))) throw new Error('HTTPモードは、信頼するファイルで選択してください。');
-    nextSession = mode === 'http' ? await prepareHttpDocument(files, { entryPath, hash }) : await prepareDocument(files, { entryPath, hash });
+    nextSession = mode === 'http' ? await prepareHttpDocument(files, { entryPath, hash, largeFiles }) : await prepareDocument(files, { entryPath, hash, largeFiles });
     if (ticket !== operation) { nextSession.dispose(); return; }
     const previousSession = activeSession;
     const wasSaved = sessionSaved && previousSession?.documentKey === nextSession.documentKey;
@@ -278,7 +289,7 @@ function chooseEntry() {
     button.setAttribute('aria-current', String(entry.path === activeSession.entryPath));
     button.addEventListener('click', () => {
       $('#entry-dialog').close();
-      void openFiles(currentFiles, { entryPath: entry.path, mode: activeSession.mode || 'isolated', save: remember.checked && sessionSaved });
+      void openFiles(currentFiles, { entryPath: entry.path, mode: activeSession.mode || 'isolated', largeFiles: activeSession.largeFiles, save: remember.checked && sessionSaved });
     });
     list.append(button);
   }
@@ -301,14 +312,14 @@ $('#open-demo').addEventListener('click', async () => {
 });
 $('#close-player').addEventListener('click', () => void closePlayer());
 $('#reload-player').addEventListener('click', () => {
-  if (activeSession) void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: activeSession.mode || 'isolated', save: false });
+  if (activeSession) void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: activeSession.mode || 'isolated', largeFiles: activeSession.largeFiles, save: false });
 });
 $('#http-mode').addEventListener('click', () => {
   if (!activeSession) return;
   if (activeSession.mode === 'http') {
-    void openFiles(currentFiles, { entryPath: activeSession.entryPath, save: false });
+    void openFiles(currentFiles, { entryPath: activeSession.entryPath, largeFiles: activeSession.largeFiles, save: false });
   } else if (trustedDocuments.has(activeSession.documentKey)) {
-    void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', save: false });
+    void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', largeFiles: activeSession.largeFiles, save: false });
   } else {
     $('#http-dialog').dataset.documentKey = activeSession.documentKey;
     $('#http-file-name').textContent = activeSession.name;
@@ -321,7 +332,7 @@ $('#confirm-http').addEventListener('click', () => {
   $('#http-dialog').close();
   if (!activeSession || activeSession.documentKey !== key) return;
   trustedDocuments.add(key);
-  void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', save: remember.checked && sessionSaved });
+  void openFiles(currentFiles, { entryPath: activeSession.entryPath, mode: 'http', largeFiles: activeSession.largeFiles, save: remember.checked && sessionSaved });
 });
 $('#expand-player').addEventListener('click', () => void expandPlayer());
 $('#exit-expanded').addEventListener('click', () => void exitExpanded());
@@ -343,6 +354,10 @@ for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListene
 });
 remember.addEventListener('change', () => {
   try { localStorage.setItem('pocket-html-remember', String(remember.checked)); } catch { /* Do not block file viewing. */ }
+});
+largeFilesOption.addEventListener('change', () => {
+  updateCapacityNote();
+  try { localStorage.setItem('pocket-html-large-files', String(largeFilesOption.checked)); } catch { /* Do not block file viewing. */ }
 });
 
 let dragDepth = 0;

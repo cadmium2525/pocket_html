@@ -148,6 +148,7 @@ export async function prepareHttpDocument(files, options = {}) {
   const session = {
     name: bundle.name, title: bundle.title, entryPath: bundle.entryPath, entries: bundle.entries,
     fileCount: bundle.records.length, documentKey: bundle.documentKey, warnings: [...warnings],
+    largeFiles: bundle.largeFiles,
     url: namespaceUrl(scopeUrl, token, bundle.entryPath) + hash, mode: 'http',
     attach(iframe, onEvent = () => {}) {
       if (disposed) throw new Error('このViewerセッションは終了しています。');

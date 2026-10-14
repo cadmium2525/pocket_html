@@ -52,6 +52,10 @@
             <h2>開きたいファイルを選択</h2>
             <p>「ファイル」アプリに保存したHTMLを、<br>そのまま読み込めます。</p>
             <button id="open-file" class="primary-button"><svg><use href="#i-folder"/></svg>ファイルを選んで開く<svg class="button-arrow"><use href="#i-arrow"/></svg></button>
+            <div class="capacity-option">
+              <label><input id="large-files" type="checkbox" aria-describedby="capacity-note"><span>大容量モード <span class="capacity-limit">上限128MB</span></span></label>
+              <p id="capacity-note">合計32MB・600ファイルまで。ZIPは展開後も同じ上限です。</p>
+            </div>
             <p class="drop-hint">PCではここにドラッグ＆ドロップもできます</p>
             <p class="http-hint">HTTP配信が必要なゲームは、開いた後に「HTTP」へ。</p>
           </div>
@@ -97,11 +101,11 @@
     <div class="modal-heading"><div><span class="panel-label">A QUICK GUIDE</span><h2>Pocket HTML の使い方</h2></div><button class="icon-button" data-close-dialog aria-label="閉じる"><svg><use href="#i-close"/></svg></button></div>
     <div class="help-content">
       <h3>iPhoneで開く</h3><p>HTMLを「ファイル」アプリに保存し、このページの「ファイルを選んで開く」から選択します。iCloud Driveのファイルも選べます。よく使う場合はSafariの共有メニューから「ホーム画面に追加」すると便利です。</p>
-      <h3>画像や音声が別ファイルのとき</h3><p>HTMLと画像・CSS・JavaScriptなどを、フォルダ構成を保ったまま1つのZIPにしてください。ZIP内にHTMLが複数あれば、開くページを選べます。PCでは関連ファイルをまとめて選択する方法も使えます。読み込めるのは合計32MB・600ファイルまでです（ZIPは展開後も32MBまで）。パスワード付きZIPには対応していません。</p>
+      <h3>画像や音声が別ファイルのとき</h3><p>HTMLと画像・CSS・JavaScriptなどを、フォルダ構成を保ったまま1つのZIPにしてください。ZIP内にHTMLが複数あれば、開くページを選べます。PCでは関連ファイルをまとめて選択する方法も使えます。通常は合計32MB、ホームの「大容量モード」をオンにすると128MBまで読み込めます。ZIPは圧縮ファイルと展開後の両方に同じ上限があり、ファイル数はどちらも600個までです。大容量の読み込みには時間やメモリが必要で、端末によって開けない場合があります。パスワード付きZIPには対応していません。</p>
       <h3>ブラウザゲームについて</h3><p>JavaScript、Canvas、WebGL、タッチ入力を使うゲームを実行できます。画面いっぱいに表示するボタンも使えます。音声はゲーム内でのタップが必要です。外部ライブラリを読み込むゲームにはインターネット接続が必要です。</p>
       <h3>HTTP配信が必要なゲーム</h3><p>python -m http.serverなどで配信して遊ぶゲームや、Viteのビルド済みdistを、フォルダ構成を保ったZIPで開きます。表示枠の「HTTP」から、信頼するファイルでHTTPモードを選択してください。ZIP内をブラウザ内だけでHTTP配信するため、サーバー契約やアップロードは不要です。</p><p>HTTPモードでは、通常のURLによるモジュール・Worker・WebAssembly・IndexedDBなどを利用できます。ファイルのプログラムはViewerと同じサイトとして動くため、保存済みファイルにもアクセスできる状態になります。自作など信頼できるファイルだけで利用してください。</p>
       <p class="help-callout">どんなゲームでも動くわけではありません。Node.js・PHP・Pythonのサーバー処理、外部API、ゲーム自身のService Worker、SharedArrayBufferを使う複数スレッドなどは実行環境が必要です。HTTPモードもそれらのサーバーを起動する機能ではありません。キーボード専用のゲームには外部キーボードが必要です。</p>
-      <h3>ファイルとセーブデータ</h3><p>選んだファイルをViewerからサーバーに送ることはありません。ただし、HTML自身の外部通信は実行されます。信頼できるファイルを開いてください。「この端末に保存」がオンなら、最近の5件をブラウザ内に保存します（1件32MBまで）。</p><p>通常表示ではlocalStorage・sessionStorageを互換機能で処理します。HTTPモードではブラウザの保存領域を利用するため、通常表示とは別のセーブになります。ブラウザのデータ削除やプライベートモードでは履歴・セーブが消える場合があります。履歴の削除は保存したファイルを削除します。</p>
+      <h3>ファイルとセーブデータ</h3><p>選んだファイルをViewerからサーバーに送ることはありません。ただし、HTML自身の外部通信は実行されます。信頼できるファイルを開いてください。「この端末に保存」がオンなら、最近の5件をブラウザ内に保存します（大容量モードでは1件128MBまで）。保存履歴から開くと、そのファイルの大容量設定を引き継ぎます。端末の空き容量によって保存できない場合も、表示はそのまま使えます。</p><p>通常表示ではlocalStorage・sessionStorageを互換機能で処理します。HTTPモードではブラウザの保存領域を利用するため、通常表示とは別のセーブになります。ブラウザのデータ削除やプライベートモードでは履歴・セーブが消える場合があります。履歴の削除は保存したファイルを削除します。</p>
       <a href="./examples/orbit-catch.html" download="orbit-catch.html" class="sample-download"><svg><use href="#i-file"/></svg>サンプルHTMLをダウンロード<svg><use href="#i-arrow"/></svg></a>
     </div>
   </dialog>
