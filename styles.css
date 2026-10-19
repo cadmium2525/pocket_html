@@ -30,5 +30,23 @@
 .capacity-option input{accent-color:var(--accent);width:16px;height:16px;margin:0;flex-shrink:0}
 .capacity-limit{font-size:10px;color:var(--accent);margin-left:5px;white-space:nowrap}
 .capacity-option p{font-size:10px;line-height:1.8;color:var(--muted);margin:0}
+
+.secondary-button{display:inline-flex;align-items:center;justify-content:center;gap:9px;border:1px solid #52604a;background:#242f22;color:#d7e8bf;border-radius:10px;min-height:46px;padding:11px 15px;font-size:12px;font-weight:600;text-align:center}
+.secondary-button:hover{background:#303d2c}.secondary-button svg{width:18px;height:18px}
+.archive-shortcut{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:22px 25px;margin-top:22px;border:1px solid var(--border);background:var(--panel);border-radius:var(--radius)}
+.archive-shortcut .panel-label{font-size:9px;color:#b1c69b}.archive-shortcut h2{font-size:16px;margin:8px 0;letter-spacing:-.3px}.archive-shortcut p{font-size:11px;line-height:1.8;color:var(--muted);margin:0}.archive-shortcut .secondary-button{flex-shrink:0}
+.archive-modal{width:760px;overflow:hidden}.archive-modal[open]{display:flex;flex-direction:column}.archive-modal>.modal-heading{flex-shrink:0}
+.archive-name{font-size:12px;line-height:1.7;color:#c6d1bb;overflow-wrap:anywhere;margin:15px 0;flex-shrink:0;max-height:5em;overflow:auto}
+.archive-progress{display:flex;align-items:center;gap:12px;padding:30px 0;font-size:12px;color:var(--muted)}
+.archive-error{padding:14px;background:#3b2928;color:#f1aea8;border:1px solid #79514c;border-radius:9px;font-size:12px;line-height:1.9;overflow-wrap:anywhere}
+.archive-content{min-height:0;flex:1;overflow:auto;overscroll-behavior:contain}.archive-content:not([hidden]){display:block}
+.archive-search-label{font-size:11px;color:var(--muted);margin-bottom:8px}.archive-search{width:100%;min-height:44px;border:1px solid #46544a;background:#10181d;color:var(--text);border-radius:8px;padding:10px 12px;font-size:16px;flex-shrink:0}
+.archive-selection-tools{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:9px 0;flex-shrink:0}.archive-selection-tools .text-button{min-height:44px;padding:8px 0}.archive-selection-tools>span{margin-left:auto;font-size:10px;color:var(--muted);line-height:1.8}
+.archive-list{list-style:none;padding:0;margin:0;border:1px solid #36423a;border-radius:10px;overflow:auto;overscroll-behavior:contain;min-height:90px;max-height:42dvh;flex:1}
+.archive-row{display:flex;align-items:center;gap:12px;border-bottom:1px solid #303a33;padding:9px 12px}.archive-row:last-child{border-bottom:0}.archive-row label{display:flex;align-items:center;gap:11px;min-height:44px;min-width:0;flex:1;cursor:pointer}.archive-row input{accent-color:var(--accent);width:17px;height:17px;flex-shrink:0;margin:0}.archive-file-copy{display:flex;flex-direction:column;gap:5px;min-width:0}.archive-file-path{font-size:12px;overflow-wrap:anywhere;line-height:1.6}.archive-file-size{font-size:10px;color:var(--muted)}
+.archive-save-file{border:1px solid #465a3d;background:#283322;color:var(--accent);border-radius:7px;min-width:52px;min-height:44px;padding:7px 10px;font-size:11px;flex-shrink:0}.archive-save-file:hover{background:#35442b}
+.archive-empty{padding:15px 0;font-size:12px;color:var(--muted)}.archive-export-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px;flex-shrink:0}.archive-export-actions>.primary-button,.archive-export-actions>.secondary-button{font-size:12px;min-height:46px;padding:11px 15px;flex:1}
+.archive-status,.archive-save-note{font-size:10px;line-height:1.8;margin:10px 0 0;color:#b5c6a1;flex-shrink:0}.archive-save-note{color:var(--muted)}
+@media(max-width:760px){.archive-shortcut{padding:20px;flex-direction:column;align-items:stretch;gap:16px;margin-top:16px}.archive-shortcut .secondary-button{width:100%}.archive-modal .modal-heading h2{font-size:16px}.archive-list{max-height:38dvh}.archive-row{padding:8px;gap:8px}.archive-file-path{font-size:11px}.archive-row label{gap:8px}.archive-selection-tools{gap:12px}.archive-selection-tools>span{width:100%;margin-left:0}.archive-export-actions>.primary-button,.archive-export-actions>.secondary-button{width:auto;font-size:11px;padding:10px 11px}.archive-save-note{font-size:9px}.archive-modal{padding:17px}}
 #http-file-name{font-weight:600;color:var(--text);overflow-wrap:anywhere}
 @media(max-width:360px){.player-actions{gap:0}.http-button{min-width:40px;padding:0 6px}.player-bar{gap:3px}.document-name{min-width:24px}}

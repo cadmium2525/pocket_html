@@ -30,6 +30,7 @@
     <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/></symbol>
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/></symbol>
     <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4 10-10"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
   </defs></svg>
 
   <div id="home" class="home">
@@ -68,6 +69,11 @@
         </aside>
       </div>
 
+      <section class="archive-shortcut" aria-labelledby="archive-shortcut-title">
+        <div><span class="panel-label">ZIP TOOLS</span><h2 id="archive-shortcut-title">ZIPを展開して保存</h2><p>中身を確認して、必要なファイルだけ取り出せます。</p></div>
+        <button id="open-archive" class="secondary-button"><svg><use href="#i-folder"/></svg>ZIPを選んで展開</button>
+      </section>
+
       <section class="recent-section" aria-labelledby="recent-heading">
         <div class="section-top"><h2 id="recent-heading">最近開いたファイル <span id="recent-count">0</span></h2><label class="remember-option"><input id="remember-files" type="checkbox" checked>この端末に保存</label></div>
         <div id="recent-list" class="recent-list"><p class="empty-recent">まだファイルがありません。開いたファイルはここから再開できます。</p></div>
@@ -94,6 +100,7 @@
   </section>
 
   <input id="file-input" type="file" multiple hidden>
+  <input id="archive-input" type="file" hidden>
   <div id="busy" class="busy" role="status" hidden><span class="spinner"></span><span id="busy-text">ファイルを準備中…</span></div>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 
@@ -103,10 +110,31 @@
       <h3>iPhoneで開く</h3><p>HTMLを「ファイル」アプリに保存し、このページの「ファイルを選んで開く」から選択します。iCloud Driveのファイルも選べます。よく使う場合はSafariの共有メニューから「ホーム画面に追加」すると便利です。</p>
       <h3>画像や音声が別ファイルのとき</h3><p>HTMLと画像・CSS・JavaScriptなどを、フォルダ構成を保ったまま1つのZIPにしてください。ZIP内にHTMLが複数あれば、開くページを選べます。PCでは関連ファイルをまとめて選択する方法も使えます。通常は合計32MB、ホームの「大容量モード」をオンにすると128MBまで読み込めます。ZIPは圧縮ファイルと展開後の両方に同じ上限があり、ファイル数はどちらも600個までです。大容量の読み込みには時間やメモリが必要で、端末によって開けない場合があります。パスワード付きZIPには対応していません。</p>
       <h3>ブラウザゲームについて</h3><p>JavaScript、Canvas、WebGL、タッチ入力を使うゲームを実行できます。画面いっぱいに表示するボタンも使えます。音声はゲーム内でのタップが必要です。外部ライブラリを読み込むゲームにはインターネット接続が必要です。</p>
+      <h3>ZIPからファイルを取り出す</h3><p>ホームの「ZIPを選んで展開」からZIPを選び、一覧の「保存」で1件ずつ取り出せます。ファイル名・フォルダーで絞り込み、必要なものを選択してZIPにまとめることもできます。保存用ZIPができたら「ZIPを保存」を押してください。フォルダー構成はそのまま保ちます。</p><p>対応するiPhoneでは、選択後の「共有して保存」から「ファイルに保存」を選べます。共有できる形式や容量は端末によって異なります。同名ファイルは個別共有時に連番を付けます。ダウンロードしたファイルは、Safariで設定した保存先や「ファイル」アプリのダウンロードを確認してください。展開だけではHTMLやJavaScriptを実行せず、サーバーへのアップロードも行いません。読み込みの上限は通常32MB、大容量モード128MB・600ファイルです。</p>
       <h3>HTTP配信が必要なゲーム</h3><p>python -m http.serverなどで配信して遊ぶゲームや、Viteのビルド済みdistを、フォルダ構成を保ったZIPで開きます。表示枠の「HTTP」から、信頼するファイルでHTTPモードを選択してください。ZIP内をブラウザ内だけでHTTP配信するため、サーバー契約やアップロードは不要です。</p><p>HTTPモードでは、通常のURLによるモジュール・Worker・WebAssembly・IndexedDBなどを利用できます。ファイルのプログラムはViewerと同じサイトとして動くため、保存済みファイルにもアクセスできる状態になります。自作など信頼できるファイルだけで利用してください。</p>
       <p class="help-callout">どんなゲームでも動くわけではありません。Node.js・PHP・Pythonのサーバー処理、外部API、ゲーム自身のService Worker、SharedArrayBufferを使う複数スレッドなどは実行環境が必要です。HTTPモードもそれらのサーバーを起動する機能ではありません。キーボード専用のゲームには外部キーボードが必要です。</p>
       <h3>ファイルとセーブデータ</h3><p>選んだファイルをViewerからサーバーに送ることはありません。ただし、HTML自身の外部通信は実行されます。信頼できるファイルを開いてください。「この端末に保存」がオンなら、最近の5件をブラウザ内に保存します（大容量モードでは1件128MBまで）。保存履歴から開くと、そのファイルの大容量設定を引き継ぎます。端末の空き容量によって保存できない場合も、表示はそのまま使えます。</p><p>通常表示ではlocalStorage・sessionStorageを互換機能で処理します。HTTPモードではブラウザの保存領域を利用するため、通常表示とは別のセーブになります。ブラウザのデータ削除やプライベートモードでは履歴・セーブが消える場合があります。履歴の削除は保存したファイルを削除します。</p>
       <a href="./examples/orbit-catch.html" download="orbit-catch.html" class="sample-download"><svg><use href="#i-file"/></svg>サンプルHTMLをダウンロード<svg><use href="#i-arrow"/></svg></a>
+    </div>
+  </dialog>
+  <dialog id="archive-dialog" class="modal archive-modal" aria-labelledby="archive-title">
+    <div class="modal-heading"><div><span class="panel-label">ZIP TOOLS · ON YOUR DEVICE</span><h2 id="archive-title">必要なファイルを取り出す</h2></div><button class="icon-button" data-close-dialog aria-label="ZIP展開を閉じる"><svg><use href="#i-close"/></svg></button></div>
+    <p id="archive-name" class="archive-name"></p>
+    <div id="archive-progress" class="archive-progress" role="status" hidden><span class="spinner"></span><span>ZIPを展開中…</span></div>
+    <p id="archive-error" class="archive-error" role="alert" hidden></p>
+    <div id="archive-content" class="archive-content" hidden>
+      <label class="archive-search-label" for="archive-search">ファイル名・フォルダーで絞り込み</label>
+      <input id="archive-search" class="archive-search" type="search" placeholder="例：dist/、.html、画像の名前" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <div class="archive-selection-tools"><button id="archive-select-visible" class="text-button">表示中を選択</button><button id="archive-clear" class="text-button">選択を解除</button><span id="archive-summary" aria-live="polite"></span></div>
+      <ul id="archive-list" class="archive-list" aria-label="ZIP内のファイル"></ul>
+      <p id="archive-empty" class="archive-empty" hidden>一致するファイルがありません。</p>
+      <div class="archive-export-actions">
+        <button id="archive-share" class="secondary-button" disabled hidden>共有して保存</button>
+        <button id="archive-package" class="primary-button" disabled><svg><use href="#i-download"/></svg>選択分をZIPにする</button>
+        <a id="archive-download" class="primary-button" hidden><svg><use href="#i-download"/></svg>ZIPを保存</a>
+      </div>
+      <p id="archive-status" class="archive-status" role="status" aria-live="polite">一覧の「保存」で1件ずつ保存できます。複数ファイルは選択分をZIPにまとめられます。</p>
+      <p class="archive-save-note">iPhoneでは対応ファイルを「共有して保存」→「ファイルに保存」へ。フォルダー構成を保つにはZIP保存を使ってください。</p>
     </div>
   </dialog>
   <dialog id="entry-dialog" class="modal entry-modal"><div class="modal-heading"><div><span class="panel-label">SELECT A PAGE</span><h2>開くHTMLを選択</h2></div><button class="icon-button" data-close-dialog aria-label="閉じる"><svg><use href="#i-close"/></svg></button></div><div id="entry-list" class="entry-list"></div></dialog>

@@ -78,7 +78,9 @@ export function inspectZip(bytes, limits = IMPORT_LIMITS) {
     if (size === 0xffffffff || compressedSize === 0xffffffff || localOffset === 0xffffffff) {
       throw new Error('ZIP64のファイルには対応していません。');
     }
-    const rawName = new TextDecoder('utf-8', { fatal: false }).decode(bytes.subarray(offset + 46, offset + 46 + nameSize));
+    let rawName;
+    try { rawName = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(offset + 46, offset + 46 + nameSize)); }
+    catch { throw new Error('ZIP内のファイル名を読み取れません。UTF-8のファイル名でZIPを作り直してください。'); }
     const path = normalizeArchivePath(rawName);
     if (seen.has(path)) throw new Error('ZIP内に重複するファイル名があります。');
     seen.add(path);

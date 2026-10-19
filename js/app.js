@@ -2,6 +2,7 @@ import { prepareDocument } from './viewer-engine.js';
 import { prepareHttpDocument } from './http-runtime.js';
 import { listRecent, saveRecent, readRecent, removeRecent } from './db.js';
 import { getImportLimits } from './zip.js';
+import { setupArchiveBrowser } from './archive-ui.js';
 
 const $ = selector => document.querySelector(selector);
 const home = $('#home');
@@ -375,4 +376,5 @@ dropZone.addEventListener('drop', event => {
 document.addEventListener('dragover', event => event.preventDefault());
 document.addEventListener('drop', event => event.preventDefault());
 
+setupArchiveBrowser({ getLargeFiles: () => largeFilesOption.checked, showToast });
 void refreshRecent();

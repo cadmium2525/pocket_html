@@ -1,4 +1,5 @@
-import { readZip, inspectZip, IMPORT_LIMITS, getImportLimits, normalizeArchivePath } from './zip.js';
+import { IMPORT_LIMITS, getImportLimits, normalizeArchivePath } from './zip.js';
+import { readZipFile } from './zip-reader.js';
 
 const VIRTUAL_ORIGIN = 'https://html-viewer.local.invalid';
 const STORAGE_PREFIX = 'html-viewer:game:v1:';
@@ -64,59 +65,6 @@ async function contentKey(records) {
   return `legacy-${(hash >>> 0).toString(16)}`;
 }
 
-async function readyZipWorker() {
-  if (typeof globalThis.Worker !== 'function') return null;
-  let worker;
-  try { worker = new Worker(new URL('./zip-worker.js', import.meta.url), { type: 'module', name: 'pocket-html-zip' }); }
-  catch { return null; }
-  return new Promise(resolve => {
-    const finish = ready => {
-      clearTimeout(timeout);
-      worker.onmessage = null; worker.onerror = null; worker.onmessageerror = null;
-      if (!ready) worker.terminate();
-      resolve(ready ? worker : null);
-    };
-    const timeout = setTimeout(() => finish(false), 10000);
-    worker.onmessage = event => { if (event.data?.type === 'ready') finish(true); };
-    worker.onerror = event => { event.preventDefault(); finish(false); };
-    worker.onmessageerror = () => finish(false);
-  });
-}
-
-async function extractZip(bytes, limits) {
-  if (limits === IMPORT_LIMITS) return readZip(bytes, limits);
-  // Check the size and directory before starting a worker or allocating outputs.
-  inspectZip(bytes, limits);
-  const worker = await readyZipWorker();
-  if (!worker) {
-    throw new Error('大容量ZIPの展開機能を起動できませんでした。ページを再読み込みするか、ZIPを32MB以下にして大容量モードをオフにしてください。');
-  }
-  return new Promise((resolve, reject) => {
-    const finish = (error, records) => {
-      clearTimeout(timeout);
-      worker.onmessage = null; worker.onerror = null; worker.onmessageerror = null;
-      worker.terminate();
-      error ? reject(error) : resolve(records);
-    };
-    const timeout = setTimeout(() => finish(new Error('ZIPの展開に時間がかかりすぎました。ファイルを小さくして開き直してください。')), 120000);
-    worker.onmessage = event => {
-      if (event.data?.type === 'result') finish(null, event.data.records);
-      else if (event.data?.type === 'error') finish(new Error(event.data.message || 'ZIPを展開できませんでした。'));
-    };
-    worker.onerror = event => {
-      event.preventDefault();
-      finish(new Error('ZIPの展開を続けられませんでした。ほかのアプリを閉じるか、ファイルを小さくして開き直してください。'));
-    };
-    worker.onmessageerror = () => finish(new Error('ZIPの展開結果を読み取れませんでした。'));
-    try {
-      // Transfer ownership instead of making a second copy of a large archive.
-      worker.postMessage({ bytes, largeFiles: true }, [bytes.buffer]);
-    } catch {
-      finish(new Error('ZIPを展開するためのデータを渡せませんでした。開き直してください。'));
-    }
-  });
-}
-
 async function collectFiles(input, limits = IMPORT_LIMITS) {
   const files = [...input];
   if (!files.length) throw new Error('HTMLファイルまたはZIPを選んでください。');
@@ -127,7 +75,7 @@ async function collectFiles(input, limits = IMPORT_LIMITS) {
     throw new Error(`ファイルの合計サイズは${limits.bytes / (1024 * 1024)}MB以下にしてください。${largerImportHint}`);
   }
   if (files.length === 1 && /\.zip$/i.test(files[0].name)) {
-    return { records: await extractZip(new Uint8Array(await files[0].arrayBuffer()), limits), name: files[0].name };
+    return { records: await readZipFile(files[0], { largeFiles: limits !== IMPORT_LIMITS }), name: files[0].name };
   }
   if (files.some(file => /\.zip$/i.test(file.name))) throw new Error('ZIPは1つずつ開いてください。');
   const records = [], seen = new Set();
