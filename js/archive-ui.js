@@ -1,4 +1,4 @@
-import { readZipFile } from './zip-reader.js';
+import { readZipFile } from './zip-reader.js?v=archive-layout-2';
 import { IMPORT_LIMITS } from './zip.js';
 import { createSelectedZip, downloadFileName, packageFileName, uniqueDownloadNames } from './archive-files.js';
 
@@ -109,7 +109,8 @@ export function setupArchiveBrowser({ getLargeFiles, showToast }) {
   }
   async function openArchive(file) {
     const current = ++ticket;
-    readController?.abort(); readController = new AbortController();
+    readController?.abort();
+    const controller = new AbortController(); readController = controller;
     selected.clear(); invalidateExport(); records = []; fileCache.clear(); shareFiles = [];
     archiveName = file.name; search.value = ''; list.replaceChildren();
     $('#archive-name').textContent = file.name;
@@ -118,7 +119,7 @@ export function setupArchiveBrowser({ getLargeFiles, showToast }) {
     if (!dialog.open) dialog.showModal();
     try {
       if (!/\.zip$/i.test(file.name)) throw new Error('ZIPファイルを選んでください。');
-      const result = await readZipFile(file, { largeFiles: getLargeFiles(), signal: readController.signal });
+      const result = await readZipFile(file, { largeFiles: getLargeFiles(), signal: controller.signal });
       if (current !== ticket) return;
       if (!result.length) throw new Error('取り出せるファイルがありません。');
       records = result.sort((a, b) => a.path.localeCompare(b.path));
@@ -126,8 +127,8 @@ export function setupArchiveBrowser({ getLargeFiles, showToast }) {
       $('#archive-status').textContent = '一覧の「保存」で1件ずつ保存できます。複数ファイルは選択分をZIPにまとめられます。';
       renderList();
     } catch (error) {
-      if (current !== ticket || error.name === 'AbortError') return;
-      $('#archive-error').textContent = error.message || 'ZIPを読み込めませんでした。';
+      if (current !== ticket || controller.signal.aborted) return;
+      $('#archive-error').textContent = error?.message || 'ZIPを読み込めませんでした。もう一度ファイルを選んでください。';
       $('#archive-error').hidden = false;
     } finally {
       if (current === ticket) $('#archive-progress').hidden = true;

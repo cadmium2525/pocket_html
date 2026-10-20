@@ -90,7 +90,15 @@ export async function readZipFile(file, { largeFiles = false, signal } = {}) {
     const largerImportHint = limits === IMPORT_LIMITS ? ' 大きなファイルは「大容量モード」をオンにして開いてください。' : '';
     throw new Error(`ZIPは${limits.bytes / (1024 * 1024)}MB以下にしてください。${largerImportHint}`);
   }
-  const buffer = await file.arrayBuffer();
+  let buffer;
+  try { buffer = await file.arrayBuffer(); }
+  catch (error) {
+    checkAborted(signal);
+    if (['AbortError', 'NotReadableError', 'NotFoundError'].includes(error?.name)) {
+      throw new Error('ZIPの読み込みが中断されました。「ファイル」アプリでZIPを端末にダウンロードしてから、もう一度選んでください。');
+    }
+    throw error;
+  }
   checkAborted(signal);
   return extractArchive(new Uint8Array(buffer), largeFiles, { signal });
 }

@@ -34,3 +34,16 @@ test('undecodable legacy filenames fail clearly instead of being saved under cor
   bytes[central + 46] = 0x82;
   assert.throws(() => readZip(bytes), /UTF-8/);
 });
+
+test('provider read failures are visible errors while an explicit cancellation stays AbortError', async () => {
+  for (const name of ['AbortError', 'NotReadableError', 'NotFoundError']) {
+    const file = { size: 1, async arrayBuffer() { throw new DOMException('provider failure', name); } };
+    await assert.rejects(readZipFile(file, { signal: new AbortController().signal }), error =>
+      error.name !== 'AbortError' && /端末にダウンロード/.test(error.message));
+  }
+  const controller = new AbortController();
+  const file = { size: 1, async arrayBuffer() {
+    controller.abort(); throw new DOMException('read stopped', 'AbortError');
+  } };
+  await assert.rejects(readZipFile(file, { signal: controller.signal }), { name: 'AbortError' });
+});

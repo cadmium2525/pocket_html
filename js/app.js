@@ -2,7 +2,7 @@ import { prepareDocument } from './viewer-engine.js';
 import { prepareHttpDocument } from './http-runtime.js';
 import { listRecent, saveRecent, readRecent, removeRecent } from './db.js';
 import { getImportLimits } from './zip.js';
-import { setupArchiveBrowser } from './archive-ui.js';
+import { setupArchiveBrowser } from './archive-ui.js?v=archive-layout-2';
 
 const $ = selector => document.querySelector(selector);
 const home = $('#home');
